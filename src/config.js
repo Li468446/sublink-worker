@@ -41,7 +41,7 @@ export const UNIFIED_RULES = [
 		// outbound名称，使用国际化翻译函数获取显示名称
 		outbound: t('outboundNames.AI Services'),
 		// 站点规则数组，包含AI相关的分类规则，排除中国地区的AI服务
-		site_rules: ['category-ai-!cn',],
+		site_rules: ['category-ai-!cn','openai.com','chatgpt.com'],
 		// IP规则数组，当前为空，可后续添加基于IP的过滤规则
 		ip_rules: ['us', 'uk', 'ca', 'au', 'jp', 'sg', 'kr']
 	},
@@ -55,7 +55,7 @@ export const UNIFIED_RULES = [
 		name: 'Bilibili',
 		outbound: t('outboundNames.Bilibili'),
 		site_rules: ['bilibili'],
-		ip_rules: []
+		ip_rules: ['cn']
 	},
 
 	{
@@ -66,7 +66,7 @@ export const UNIFIED_RULES = [
 		// ip_rules: IP地址规则数组，指定适用的IP地址范围
 		name: 'Youtube',
 		outbound: t('outboundNames.Youtube'),
-		site_rules:  ['youtube','grok'],
+		site_rules:  ['youtube','grok','hk.chinamobile.com','clubsim.com.hk'],
 		ip_rules: ['hk']
 	},
 
@@ -79,7 +79,7 @@ export const UNIFIED_RULES = [
 		// ip_rules: IP地址规则匹配数组，包含需要匹配的IP地址或标识符
 		name: 'Google',
 		outbound: t('outboundNames.Google'),
-		site_rules: ['google'],
+		site_rules: ['google','ipcheck','ip138','cloudflare'],
 		ip_rules: ['hk']
 	},
 
@@ -102,7 +102,7 @@ export const UNIFIED_RULES = [
 		// ip_rules: IP地址规则数组，指定国家代码匹配规则
 		name: 'Location:CN',
 		outbound: t('outboundNames.Location:CN'),
-		site_rules: ['geolocation-cn','cn'],
+		site_rules: ['geolocation-cn','cn','boc.cn','bochk.com','cib.com.cn','cmbchina.com','chinauos.com','deepseek.com','freebuf.com','hainan','hsbc.com.hk','icbc.com.cn','qq.com','tencent.com','todesk.com','iot.chengtakj.com','xiaohongshu.com','ccb.com','virscan.org','welab.bank','bank.za.group','airstarbank.com','antbank.hk','console.todesk.com','aliyun'],
 		ip_rules: ['cn']
 	},
 
@@ -160,7 +160,7 @@ export const UNIFIED_RULES = [
 		// 出站规则名称，通过国际化函数获取显示名称
 		outbound: t('outboundNames.Social Media'),
 		// 站点规则列表，包含主流社交媒体平台的域名匹配规则
-		site_rules: ['facebook', 'instagram', 'x', 'linkedin'],
+		site_rules: ['facebook', 'instagram', 'x', 'linkedin','whatsapp','threads'],
 		// IP地址规则列表，指定匹配来自香港地区的IP地址
 		ip_rules: ['hk']
 	},
