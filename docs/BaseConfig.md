@@ -136,29 +136,33 @@
 ### Clash 默认配置
 
 ```yaml
-port: 7890
-socks-port: 7891
-allow-lan: false
-mode: Rule
-log-level: info
-dns:
-  enable: true
-  ipv6: true
-  respect-rules: true
-  enhanced-mode: fake-ip
-  nameserver:
+port: 7890                      # HTTP 代理端口，一般用于浏览器或系统代理设置
+socks-port: 7891               # SOCKS5 代理端口，常用于程序（如 Telegram、Steam 等）设置代理
+allow-lan: false               # 是否允许局域网设备访问 Clash 的代理服务，false 表示不允许
+mode: Rule                     # Clash 的工作模式，这里是规则模式（Rule），也可为 global（全局）或 direct（直连）
+log-level: info                # 日志等级，可选：silent、error、warning、info、debug，info 表示输出一般信息
+
+dns:                           # DNS 设置部分
+  enable: true                 # 启用 Clash 内建 DNS 服务
+  ipv6: true                   # 启用 IPv6 查询支持
+  respect-rules: true          # 是否遵守 Clash 的路由规则来选择 DNS 查询的代理或直连
+  enhanced-mode: fake-ip       # 启用增强模式为 fake-ip（将 DNS 响应伪装成假 IP，用于识别域名流量）
+  nameserver:                  # 默认的本地 DNS 查询服务器（优先使用 DoH 格式）
+    - https://120.53.53.53/dns-query     # 腾讯云 DNS-over-HTTPS 服务
+    - https://223.5.5.5/dns-query        # 阿里云 DNS-over-HTTPS 服务
+
+  proxy-server-nameserver:     # 当域名走代理时使用的上游 DNS 服务器
     - https://120.53.53.53/dns-query
     - https://223.5.5.5/dns-query
-  proxy-server-nameserver:
-    - https://120.53.53.53/dns-query
-    - https://223.5.5.5/dns-query
-  nameserver-policy:
-    geosite:cn,private:
-      "https://120.53.53.53/dns-query"
-      "https://223.5.5.5/dns-query"
-    geosite:geolocation-!cn:
-      "https://dns.cloudflare.com/dns-query"
-      "https://dns.google/dns-query"
+
+  nameserver-policy:           # 针对不同域名分类使用不同的 DNS 上游策略
+    geosite:cn,private:        # 匹配 geosite 数据库中 cn 区域和私有域名
+      "https://120.53.53.53/dns-query"   # 使用国内 DoH
+      "https://264960-opwrt.alidns.com/dns-query"
+    geosite:geolocation-!cn:   # 匹配非中国大陆的域名（即 geolocation-!cn）
+      "https://dns.cloudflare.com/dns-query"  # 使用 Cloudflare 的 DoH
+      "https://dns.google/dns-query"          # 使用 Google 的 DoH
+
 ```
 
 ## 注意事项

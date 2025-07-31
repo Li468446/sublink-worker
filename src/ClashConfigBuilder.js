@@ -4,7 +4,20 @@ import { BaseConfigBuilder } from './BaseConfigBuilder.js';
 import { DeepCopy } from './utils.js';
 import { t } from './i18n/index.js';
 
+/**
+ * Clash配置构建器类
+ * 负责将通用代理配置转换为Clash格式的配置文件
+ */
 export class ClashConfigBuilder extends BaseConfigBuilder {
+    /**
+     * 构造函数
+     * @param {string} inputString - 输入的配置字符串
+     * @param {Array} selectedRules - 选中的规则
+     * @param {Array} customRules - 自定义规则
+     * @param {Object} baseConfig - 基础配置
+     * @param {string} lang - 语言
+     * @param {string} userAgent - 用户代理
+     */
     constructor(inputString, selectedRules, customRules, baseConfig, lang, userAgent) {
         if (!baseConfig) {
             baseConfig = CLASH_CONFIG;
@@ -14,17 +27,32 @@ export class ClashConfigBuilder extends BaseConfigBuilder {
         this.customRules = customRules;
     }
 
+    /**
+     * 获取代理列表
+     * @returns {Array} 代理数组
+     */
     getProxies() {
         return this.config.proxies || [];
     }
 
+    /**
+     * 获取代理名称
+     * @param {Object} proxy - 代理对象
+     * @returns {string} 代理名称
+     */
     getProxyName(proxy) {
         return proxy.name;
     }
 
+    /**
+     * 转换代理配置为Clash格式
+     * @param {Object} proxy - 原始代理配置
+     * @returns {Object} 转换后的Clash格式代理配置
+     */
     convertProxy(proxy) {
         switch(proxy.type) {
             case 'shadowsocks':
+                // 转换Shadowsocks代理配置
                 return {
                     name: proxy.tag,
                     type: 'ss',
@@ -34,6 +62,7 @@ export class ClashConfigBuilder extends BaseConfigBuilder {
                     password: proxy.password
                 };
             case 'vmess':
+                // 转换VMess代理配置
                 return {
                     name: proxy.tag,
                     type: proxy.type,
@@ -51,6 +80,7 @@ export class ClashConfigBuilder extends BaseConfigBuilder {
                     } : undefined
                 };
             case 'vless':
+                // 转换VLESS代理配置
                 return {
                     name: proxy.tag,
                     type: proxy.type,
@@ -78,6 +108,7 @@ export class ClashConfigBuilder extends BaseConfigBuilder {
                     'flow': proxy.flow ?? undefined,
                 };
             case 'hysteria2':
+                // 转换Hysteria2代理配置
                 return {
                     name: proxy.tag,
                     type: proxy.type,
@@ -94,6 +125,7 @@ export class ClashConfigBuilder extends BaseConfigBuilder {
                     'skip-cert-verify': proxy.tls?.insecure || true,
                 };
             case 'trojan':
+                // 转换Trojan代理配置
                 return {
                     name: proxy.tag,
                     type: proxy.type,
@@ -121,6 +153,7 @@ export class ClashConfigBuilder extends BaseConfigBuilder {
                     'flow': proxy.flow ?? undefined,
                 };
             case 'tuic':
+                // 转换TUIC代理配置
                 return {
                     name: proxy.tag,
                     type: proxy.type,
@@ -136,37 +169,46 @@ export class ClashConfigBuilder extends BaseConfigBuilder {
                     'udp-relay-mode': 'native',
                 };
             default:
-                return proxy; // Return as-is if no specific conversion is defined
+                // 如果没有定义特定转换，则按原样返回
+                return proxy;
         }
     }
 
+    /**
+     * 将代理添加到配置中，避免重复
+     * @param {Object} proxy - 要添加的代理
+     */
     addProxyToConfig(proxy) {
         this.config.proxies = this.config.proxies || [];
     
-        // Find proxies with the same or partially matching name
+        // 查找具有相同或部分匹配名称的代理
         const similarProxies = this.config.proxies.filter(p => p.name.includes(proxy.name));
     
-        // Check if there is a proxy with identical data excluding the 'name' field
+        // 检查是否存在除'name'字段外其他数据完全相同的代理
         const isIdentical = similarProxies.some(p => {
-            const { name: _, ...restOfProxy } = proxy; // Exclude the 'name' attribute
-            const { name: __, ...restOfP } = p;       // Exclude the 'name' attribute
+            const { name: _, ...restOfProxy } = proxy; // 排除'name'属性
+            const { name: __, ...restOfP } = p;       // 排除'name'属性
             return JSON.stringify(restOfProxy) === JSON.stringify(restOfP);
         });
     
         if (isIdentical) {
-            // If there is a proxy with identical data, skip adding it
+            // 如果存在数据完全相同的代理，则跳过添加
             return;
         }
     
-        // If there are proxies with similar names but different data, modify the name
+        // 如果有名称相似但数据不同的代理，则修改名称
         if (similarProxies.length > 0) {
             proxy.name = `${proxy.name} ${similarProxies.length + 1}`;
         }
     
-        // Add the proxy to the configuration
+        // 将代理添加到配置中
         this.config.proxies.push(proxy);
     }
 
+    /**
+     * 添加自动选择代理组
+     * @param {Array} proxyList - 代理列表
+     */
     addAutoSelectGroup(proxyList) {
         this.config['proxy-groups'] = this.config['proxy-groups'] || [];
         this.config['proxy-groups'].push({
@@ -179,6 +221,10 @@ export class ClashConfigBuilder extends BaseConfigBuilder {
         });
     }
 
+    /**
+     * 添加节点选择代理组
+     * @param {Array} proxyList - 代理列表
+     */
     addNodeSelectGroup(proxyList) {
         proxyList.unshift('DIRECT', 'REJECT', t('outboundNames.Auto Select'));
         this.config['proxy-groups'].unshift({
@@ -188,6 +234,11 @@ export class ClashConfigBuilder extends BaseConfigBuilder {
         });
     }
 
+    /**
+     * 添加出站代理组
+     * @param {Array} outbounds - 出站规则
+     * @param {Array} proxyList - 代理列表
+     */
     addOutboundGroups(outbounds, proxyList) {
         outbounds.forEach(outbound => {
             if (outbound !== t('outboundNames.Node Select')) {
@@ -200,6 +251,10 @@ export class ClashConfigBuilder extends BaseConfigBuilder {
         });
     }
 
+    /**
+     * 添加自定义规则代理组
+     * @param {Array} proxyList - 代理列表
+     */
     addCustomRuleGroups(proxyList) {
         if (Array.isArray(this.customRules)) {
             this.customRules.forEach(rule => {
@@ -212,6 +267,10 @@ export class ClashConfigBuilder extends BaseConfigBuilder {
         }
     }
 
+    /**
+     * 添加回退代理组
+     * @param {Array} proxyList - 代理列表
+     */
     addFallBackGroup(proxyList) {
         this.config['proxy-groups'].push({
             type: "select",
@@ -220,11 +279,18 @@ export class ClashConfigBuilder extends BaseConfigBuilder {
         });
     }
 
-    // 生成规则
+    /**
+     * 生成规则
+     * @returns {Array} 规则数组
+     */
     generateRules() {
         return generateRules(this.selectedRules, this.customRules);
     }
 
+    /**
+     * 格式化配置为YAML格式
+     * @returns {string} YAML格式的配置字符串
+     */
     formatConfig() {
         const rules = this.generateRules();
         const ruleResults = [];
@@ -239,9 +305,10 @@ export class ClashConfigBuilder extends BaseConfigBuilder {
         };
 
         // 使用RULE-SET规则格式替代原有的GEOSITE/GEOIP
-        // Rule-Set & Domain-Set:  To reduce DNS leaks and unnecessary DNS queries,
-        // domain & non-IP rules must precede IP rules
+        // Rule-Set & Domain-Set: 为了减少DNS泄漏和不必要的DNS查询，
+        // 域名和非IP规则必须优先于IP规则
 
+        // 处理域名后缀和关键词规则
         rules.filter(rule => !!rule.domain_suffix || !!rule.domain_keyword).map(rule => {
             rule.domain_suffix.forEach(suffix => {
                 ruleResults.push(`DOMAIN-SUFFIX,${suffix},${t('outboundNames.'+ rule.outbound)}`);
@@ -251,18 +318,21 @@ export class ClashConfigBuilder extends BaseConfigBuilder {
             });
         });
 
+        // 处理站点规则集
         rules.filter(rule => !!rule.site_rules[0]).map(rule => {
             rule.site_rules.forEach(site => {
                 ruleResults.push(`RULE-SET,${site},${t('outboundNames.'+ rule.outbound)}`);
             });
         });
 
+        // 处理IP规则集
         rules.filter(rule => !!rule.ip_rules[0]).map(rule => {
             rule.ip_rules.forEach(ip => {
                 ruleResults.push(`RULE-SET,${ip},${t('outboundNames.'+ rule.outbound)},no-resolve`);
             });
         });
 
+        // 处理IP CIDR规则
         rules.filter(rule => !!rule.ip_cidr).map(rule => {
             rule.ip_cidr.forEach(cidr => {
                 ruleResults.push(`IP-CIDR,${cidr},${t('outboundNames.'+ rule.outbound)},no-resolve`);
@@ -271,8 +341,10 @@ export class ClashConfigBuilder extends BaseConfigBuilder {
 
         this.config.rules = [...ruleResults]
 
+        // 添加默认匹配规则
         this.config.rules.push(`MATCH,${t('outboundNames.Fall Back')}`);
 
+        // 将配置转换为YAML格式并返回
         return yaml.dump(this.config);
     }
 }

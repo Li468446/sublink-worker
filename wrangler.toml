@@ -1,15 +1,24 @@
+# 指定配置文件的 schema，用于验证配置格式
 #:schema node_modules/wrangler/config-schema.json
+
+# Worker 的名称，用于在 Cloudflare dashboard 中标识
 name = "sublink-worker"
+
+# Worker 的入口文件
 main = "src/index.js"
+
+# Worker 的兼容性日期，指定 Worker 运行时的兼容性版本
 compatibility_date = "2024-07-24"
+
+# Worker 的兼容性标志，启用 Node.js 兼容性
 compatibility_flags = ["nodejs_compat"]
 
+# KV 命名空间配置，用于绑定 Worker 到 Cloudflare KV 存储
 kv_namespaces = [
   { binding = "SUBLINK_KV", id = "8943789ed0af49659f887fc740d11240" }
 ]
-# wrangler.toml (wrangler v3.88.0^)
+
+# 日志可观性配置 (wrangler v3.88.0 及以上版本)
 [observability.logs]
+# 启用日志功能
 enabled = true
-
-
-

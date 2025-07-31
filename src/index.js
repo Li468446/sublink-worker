@@ -7,36 +7,47 @@ import { PREDEFINED_RULE_SETS } from './config.js';
 import { t, setLanguage } from './i18n/index.js';
 import yaml from 'js-yaml';
 
+// 添加事件监听器，处理 fetch 请求
 addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request))
 })
 
+// 主要的请求处理函数
 async function handleRequest(request) {
   try {
+    // 解析请求 URL
     const url = new URL(request.url);
     const lang = url.searchParams.get('lang');
+    // 设置语言环境
     setLanguage(lang || request.headers.get('accept-language')?.split(',')[0]);
+    
+    // 处理根路径的 GET 请求，返回 HTML 表单
     if (request.method === 'GET' && url.pathname === '/') {
-      // Return the HTML form for GET requests
+      // 返回 HTML 表单用于 GET 请求
       return new Response(generateHtml('', '', '', '', url.origin), {
         headers: { 'Content-Type': 'text/html' }
       });
+      
+    // 处理 singbox、clash 和 surge 配置请求
     } else if (url.pathname.startsWith('/singbox') || url.pathname.startsWith('/clash') || url.pathname.startsWith('/surge')) {
+      // 获取配置参数
       const inputString = url.searchParams.get('config');
       let selectedRules = url.searchParams.get('selectedRules');
       let customRules = url.searchParams.get('customRules');
       // 获取语言参数，如果为空则使用默认值
       let lang = url.searchParams.get('lang') || 'zh-CN';
-      // Get custom UserAgent
+      // 获取自定义 UserAgent
       let userAgent = url.searchParams.get('ua');
       if (!userAgent) {
         userAgent = 'curl/7.74.0';
       }
 
+      // 检查配置参数是否存在
       if (!inputString) {
         return new Response(t('missingConfig'), { status: 400 });
       }
 
+      // 处理预定义规则集或解析自定义规则
       if (PREDEFINED_RULE_SETS[selectedRules]) {
         selectedRules = PREDEFINED_RULE_SETS[selectedRules];
       } else {
@@ -48,7 +59,7 @@ async function handleRequest(request) {
         }
       }
 
-      // Deal with custom rules
+      // 处理自定义规则
       try {
         customRules = JSON.parse(decodeURIComponent(customRules));
       } catch (error) {
@@ -56,7 +67,7 @@ async function handleRequest(request) {
         customRules = [];
       }
 
-      // Modify the existing conversion logic
+      // 处理自定义配置
       const configId = url.searchParams.get('configId');
       let baseConfig;
       if (configId) {
@@ -66,6 +77,7 @@ async function handleRequest(request) {
         }
       }
 
+      // 根据请求路径创建相应的配置构建器
       let configBuilder;
       if (url.pathname.startsWith('/singbox')) {
         configBuilder = new SingboxConfigBuilder(inputString, selectedRules, customRules, baseConfig, lang, userAgent);
@@ -76,6 +88,7 @@ async function handleRequest(request) {
           .setSubscriptionUrl(url.href);
       }
 
+      // 构建配置
       const config = await configBuilder.build();
 
       // 设置正确的 Content-Type 和其他响应头
@@ -92,25 +105,30 @@ async function handleRequest(request) {
         headers['subscription-userinfo'] = 'upload=0; download=0; total=10737418240; expire=2546249531';
       }
 
+      // 返回构建好的配置
       return new Response(
         url.pathname.startsWith('/singbox') ? JSON.stringify(config, null, 2) : config,
         { headers }
       );
 
+    // 处理 URL 缩短请求
     } else if (url.pathname === '/shorten') {
       const originalUrl = url.searchParams.get('url');
       if (!originalUrl) {
         return new Response(t('missingUrl'), { status: 400 });
       }
 
+      // 生成短代码并存储原始 URL
       const shortCode = GenerateWebPath();
       await SUBLINK_KV.put(shortCode, originalUrl);
 
+      // 构造短 URL 并返回
       const shortUrl = `${url.origin}/s/${shortCode}`;
       return new Response(JSON.stringify({ shortUrl }), {
         headers: { 'Content-Type': 'application/json' }
       });
 
+    // 处理 v2 版本的 URL 缩短请求
     } else if (url.pathname === '/shorten-v2') {
       const originalUrl = url.searchParams.get('url');
       let shortCode = url.searchParams.get('shortCode');
@@ -119,25 +137,29 @@ async function handleRequest(request) {
         return new Response('Missing URL parameter', { status: 400 });
       }
 
-      // Create a URL object to correctly parse the original URL
+      // 创建 URL 对象以正确解析原始 URL
       const parsedUrl = new URL(originalUrl);
       const queryString = parsedUrl.search;
 
+      // 如果没有提供短代码，则生成一个
       if (!shortCode) {
         shortCode = GenerateWebPath();
       }
 
+      // 存储查询字符串
       await SUBLINK_KV.put(shortCode, queryString);
 
       return new Response(shortCode, {
         headers: { 'Content-Type': 'text/plain' }
       });
 
+    // 处理短 URL 重定向
     } else if (url.pathname.startsWith('/b/') || url.pathname.startsWith('/c/') || url.pathname.startsWith('/x/') || url.pathname.startsWith('/s/')) {
       const shortCode = url.pathname.split('/')[2];
       const originalParam = await SUBLINK_KV.get(shortCode);
       let originalUrl;
 
+      // 根据前缀确定原始 URL
       if (url.pathname.startsWith('/b/')) {
         originalUrl = `${url.origin}/singbox${originalParam}`;
       } else if (url.pathname.startsWith('/c/')) {
@@ -152,14 +174,17 @@ async function handleRequest(request) {
         return new Response(t('shortUrlNotFound'), { status: 404 });
       }
 
+      // 重定向到原始 URL
       return Response.redirect(originalUrl, 302);
+      
+    // 处理 Xray 配置请求
     } else if (url.pathname.startsWith('/xray')) {
       // Handle Xray config requests
       const inputString = url.searchParams.get('config');
       const proxylist = inputString.split('\n');
 
       const finalProxyList = [];
-      // Use custom UserAgent (for Xray) Hmmm...
+      // 使用自定义 UserAgent (for Xray)
       let userAgent = url.searchParams.get('ua');
       if (!userAgent) {
         userAgent = 'curl/7.74.0';
@@ -168,9 +193,11 @@ async function handleRequest(request) {
         "User-Agent"   : userAgent
       });
 
+      // 处理代理列表
       for (const proxy of proxylist) {
         if (proxy.startsWith('http://') || proxy.startsWith('https://')) {
           try {
+            // 获取远程代理配置
             const response = await fetch(proxy, {
               method : 'GET',
               headers : headers
@@ -178,7 +205,7 @@ async function handleRequest(request) {
             const text = await response.text();
             let decodedText;
             decodedText = decodeBase64(text.trim());
-            // Check if the decoded text needs URL decoding
+            // 检查解码后的文本是否需要 URL 解码
             if (decodedText.includes('%')) {
               decodedText = decodeURIComponent(decodedText);
             }
@@ -197,11 +224,16 @@ async function handleRequest(request) {
         return new Response('Missing config parameter', { status: 400 });
       }
 
+      // 返回编码后的配置
       return new Response(encodeBase64(finalString), {
         headers: { 'content-type': 'application/json; charset=utf-8' }
       });
+      
+    // 处理 favicon 请求
     } else if (url.pathname === '/favicon.ico') {
       return Response.redirect('https://cravatar.cn/avatar/9240d78bbea4cf05fb04f2b86f22b18d?s=160&d=retro&r=g', 301)
+      
+    // 处理配置存储请求
     } else if (url.pathname === '/config') {
       const { type, content } = await request.json();
       const configId = `${type}_${GenerateWebPath(8)}`;
@@ -228,6 +260,7 @@ async function handleRequest(request) {
         // 验证 JSON 格式
         JSON.parse(configString);
 
+        // 存储配置，设置 30 天过期时间
         await SUBLINK_KV.put(configId, configString, {
           expirationTtl: 60 * 60 * 24 * 30  // 30 days
         });
@@ -242,6 +275,8 @@ async function handleRequest(request) {
           headers: { 'Content-Type': 'text/plain' }
         });
       }
+      
+    // 处理解析短 URL 请求
     } else if (url.pathname === '/resolve') {
       const shortUrl = url.searchParams.get('url');
       if (!shortUrl) {
@@ -252,6 +287,7 @@ async function handleRequest(request) {
         const urlObj = new URL(shortUrl);
         const pathParts = urlObj.pathname.split('/');
         
+        // 检查路径部分是否有效
         if (pathParts.length < 3) {
           return new Response(t('invalidShortUrl'), { status: 400 });
         }
@@ -259,15 +295,18 @@ async function handleRequest(request) {
         const prefix = pathParts[1]; // b, c, x, s
         const shortCode = pathParts[2];
 
+        // 检查前缀是否有效
         if (!['b', 'c', 'x', 's'].includes(prefix)) {
           return new Response(t('invalidShortUrl'), { status: 400 });
         }
 
+        // 获取原始参数
         const originalParam = await SUBLINK_KV.get(shortCode);
         if (originalParam === null) {
           return new Response(t('shortUrlNotFound'), { status: 404 });
         }
 
+        // 构造原始 URL
         let originalUrl;
         if (prefix === 'b') {
           originalUrl = `${url.origin}/singbox${originalParam}`;
@@ -287,6 +326,7 @@ async function handleRequest(request) {
       }
     }
 
+    // 处理未找到的路径
     return new Response(t('notFound'), { status: 404 });
   } catch (error) {
     console.error('Error processing request:', error);
